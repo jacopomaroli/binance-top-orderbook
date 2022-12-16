@@ -14,9 +14,7 @@ const getOBTopN = (side, n) => side.slice(0, n).map(x => x.price.getValue())
 
 const getOBTopNAsStr = (side, n) => getOBTopN(side, n).join(', ')
 
-const excludeDupes = (value, index, self) => {
-  return self.findIndex(x => value.price.compareTo(x.price) === 0) === index
-}
+const excludeDupes = (value, index, self) => self.findIndex(x => value.price.compareTo(x.price) === 0) === index
 
 module.exports = {
   sortBid,

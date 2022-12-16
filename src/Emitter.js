@@ -4,6 +4,9 @@ class Emitter {
   }
 
   _dispatch (handlerName, ...data) {
+    if (!this._handlers[handlerName]) {
+      return
+    }
     for (const handler of this._handlers[handlerName]) {
       handler(...data)
     }

@@ -29,16 +29,32 @@ class OrderBook extends Emitter {
     if (!this.bids.length) {
       return
     }
-    const { u, U } = data
+
+    const { U } = data
+
     // 6. While listening to the stream, each new event's U should be equal to the previous event's u+1.
     if (U !== this.lastUpdateId + 1) {
-      return new DataOutOfSync(`Missed data from websocket: lastUpdateId: ${this.lastUpdateId} U: ${U}, u: ${u}`)
+      return new DataOutOfSync(`Missed data from websocket: lastUpdateId: ${this.lastUpdateId} U: ${U}`)
     }
   }
 
   async _getOB () {
     const OBStr = await this._httpClient.get('https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=100')
     return JSON.parse(OBStr)
+  }
+
+  _maybeDispatchReadyEvt (data) {
+    if (!this._ready || !this._pendingReadyEvt) {
+      return
+    }
+
+    const { U, u } = data
+
+    // 5. The first processed event should have U <= lastUpdateId+1 AND u >= lastUpdateId+1.
+    if (U <= this.lastUpdateId + 1 && u >= this.lastUpdateId + 1) {
+      this._dispatch('ready')
+      this._pendingReadyEvt = false
+    }
   }
 
   // 7. The data in each event is the absolute quantity for a price level.
@@ -54,6 +70,7 @@ class OrderBook extends Emitter {
 
   wsUpdate (data) {
     this._logger.debug('wsUpdate', data)
+
     const validateRes = this.validateWsEvent(data)
     if (validateRes instanceof DataOutOfSync) {
       this._logger.warn(validateRes.message)
@@ -61,23 +78,17 @@ class OrderBook extends Emitter {
       this.httpUpdate()
       return
     }
+
     const lastUpdateId = data.u
 
     // 2. Buffer the events you receive from the stream.
     this.bids = this._getUpdatedOBSide(this.bids, data.b, lastUpdateId, sortBid)
     this.asks = this._getUpdatedOBSide(this.asks, data.a, lastUpdateId, sortAsk)
 
-    // 5. The first processed event should have U <= lastUpdateId+1 AND u >= lastUpdateId+1.
-    if (this._ready && this._pendingReadyEvt) {
-      const { U, u } = data
-      if (U <= this.lastUpdateId + 1 && u >= this.lastUpdateId + 1) {
-        this._dispatch('ready')
-        this._pendingReadyEvt = false
-      }
-    }
+    this._maybeDispatchReadyEvt(data)
 
     // NB: this needs to be done after the readiness check
-    // we don't want to check an event against itself with itself
+    // we don't want to check an event against itself
     this.lastUpdateId = lastUpdateId
   }
 
