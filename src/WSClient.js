@@ -8,6 +8,7 @@ class WSClient {
   }
 
   _init () {
+    // 1. Open a stream to wss://stream.binance.com:9443/ws/bnbbtc@depth.
     this._ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@depth')
 
     this._ws.on('open', () => {

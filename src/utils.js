@@ -8,7 +8,7 @@ const sortAsk = (a, b) => a[0].subtract(b[0])
 
 const excludeNoVolume = x => x[1].compareTo(bigDecimalZero) === 1
 
-const excludeOutdated = (x, lastUpdateId) => x[2] > lastUpdateId
+const excludeOutdated = (x, lastUpdateId) => x.u > lastUpdateId
 
 const getOBTopN = (side, n) => side.slice(0, n).map(x => x[0].getValue())
 
