@@ -1,5 +1,5 @@
 const { sortBid, sortAsk, excludeNoVolume, excludeOutdated, getOBTopNAsStr } = require('./utils')
-const { OrderBookRecord } = require('../src/dataStructures')
+const { OrderBookRecord, Side } = require('../src/dataStructures')
 const { DataOutOfSync } = require('./errors')
 const { Emitter } = require('./Emitter')
 
@@ -104,17 +104,18 @@ class OrderBook extends Emitter {
     this._ready = true
   }
 
-  top_5_loop () {
-    this._logger.debug('top_5_loop')
-
-    if (!this._ready || this.asks.length === 0) {
+  getTopNAsStr (side, n) {
+    if (!this._ready || this.bids.length === 0 || this.asks.length === 0) {
       this._logger.debug('no data')
+      return ''
     }
 
-    this._logger.info(`Top 5 ask: ${getOBTopNAsStr([...this.asks.values()], 5)}`)
-    this._logger.info(`Top 5 bid: ${getOBTopNAsStr([...this.bids.values()], 5)}`)
-
-    setTimeout(() => this.top_5_loop(), 10000)
+    if (side === Side.BID) {
+      return getOBTopNAsStr([...this.bids.values()], n)
+    }
+    if (side === Side.ASK) {
+      return getOBTopNAsStr([...this.asks.values()], n)
+    }
   }
 }
 

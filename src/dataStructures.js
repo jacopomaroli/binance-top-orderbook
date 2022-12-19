@@ -8,6 +8,12 @@ class OrderBookRecord {
   }
 }
 
+const Side = {
+  BID: 0,
+  ASK: 1
+}
+
 module.exports = {
-  OrderBookRecord
+  OrderBookRecord,
+  Side
 }
