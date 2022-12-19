@@ -2,9 +2,9 @@ const BigDecimal = require('js-big-decimal')
 
 const bigDecimalZero = new BigDecimal('0')
 
-const sortBid = (a, b) => b.price.subtract(a.price)
+const sortBid = (a, b) => b.price.compareTo(a.price)
 
-const sortAsk = (a, b) => a.price.subtract(b.price)
+const sortAsk = (a, b) => a.price.compareTo(b.price)
 
 const excludeNoVolume = x => x.volume.compareTo(bigDecimalZero) === 1
 

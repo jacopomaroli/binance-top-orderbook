@@ -1,7 +1,8 @@
 const { Logger, LogLevel } = require('./Logger')
 const { HTTPClient } = require('./HTTPClient')
 const { WSClient } = require('./WSClient')
-const { OrderBook } = require('./OrderBook')
+const { OrderBook } = require('./OrderBookMap')
+// const { OrderBook } = require('./OrderBookArray')
 
 async function main ({ logger }) {
   logger.debug('Start')

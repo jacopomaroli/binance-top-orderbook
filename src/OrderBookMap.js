@@ -1,15 +1,7 @@
-const BigDecimal = require('js-big-decimal')
-const { sortBid, sortAsk, excludeNoVolume, excludeOutdated, excludeDupes, getOBTopNAsStr } = require('./utils')
+const { sortBid, sortAsk, excludeNoVolume, excludeOutdated, getOBTopNAsStr } = require('./utils')
+const { OrderBookRecord } = require('../src/dataStructures')
 const { DataOutOfSync } = require('./errors')
 const { Emitter } = require('./Emitter')
-
-class OrderBookRecord {
-  constructor (price, volume, lastUpdateId) {
-    this.price = new BigDecimal(price)
-    this.volume = new BigDecimal(volume)
-    this.lastUpdateId = lastUpdateId
-  }
-}
 
 class OrderBook extends Emitter {
   constructor ({ wsClient, httpClient, logger }) {
@@ -18,8 +10,8 @@ class OrderBook extends Emitter {
     this._wsClient = wsClient
     this._httpClient = httpClient
     this._logger = logger
-    this.bids = []
-    this.asks = []
+    this.bids = new Map()
+    this.asks = new Map()
     this.lastUpdateId = -1
     this._ready = false
     this._pendingReadyEvt = true
@@ -57,15 +49,19 @@ class OrderBook extends Emitter {
     }
   }
 
+  _dedupMap (obSideOld, obSideData, lastUpdateId) {
+    const obSideNew = new Map(obSideData.map(x => [x[0], new OrderBookRecord(x[0], x[1], lastUpdateId)]))
+    return [...new Map([...obSideOld, ...obSideNew])]
+  }
+
   // 7. The data in each event is the absolute quantity for a price level.
   // 8. If the quantity is 0, remove the price level.
   // 9. Receiving an event that removes a price level that is not in your local order book can happen and is normal.
   _getUpdatedOBSide (obSideOld, obSideData, lastUpdateId, sortFn) {
-    const obSideNew = obSideData.map(x => new OrderBookRecord(x[0], x[1], lastUpdateId))
-
     // NB: new values should override old values!!! careful with merge order and dedup!
     // NB: we need to excludeNoVolume AFTER combining new + old and excludeDupes in order to remove 0 level
-    return [...obSideNew, ...obSideOld].filter(excludeDupes).filter(excludeNoVolume).sort(sortFn)
+    const processed = this._dedupMap(obSideOld, obSideData, lastUpdateId).filter((x) => excludeNoVolume(x[1])).sort((a, b) => sortFn(a[1], b[1]))
+    return new Map(processed)
   }
 
   wsUpdate (data) {
@@ -99,8 +95,8 @@ class OrderBook extends Emitter {
     const { bids, asks, lastUpdateId } = await this._getOB()
 
     // 4. Drop any event where u is <= lastUpdateId in the snapshot.
-    const validBids = this.bids.filter(x => excludeOutdated(x, lastUpdateId))
-    const validAsks = this.asks.filter(x => excludeOutdated(x, lastUpdateId))
+    const validBids = new Map([...this.bids].filter(x => excludeOutdated(x[1], lastUpdateId)))
+    const validAsks = new Map([...this.asks].filter(x => excludeOutdated(x[1], lastUpdateId)))
 
     this.bids = this._getUpdatedOBSide(validBids, bids, lastUpdateId, sortBid)
     this.asks = this._getUpdatedOBSide(validAsks, asks, lastUpdateId, sortAsk)
@@ -115,11 +111,13 @@ class OrderBook extends Emitter {
       this._logger.debug('no data')
     }
 
-    this._logger.info(`Top 5 ask: ${getOBTopNAsStr(this.asks, 5)}`)
-    this._logger.info(`Top 5 bid: ${getOBTopNAsStr(this.bids, 5)}`)
+    this._logger.info(`Top 5 ask: ${getOBTopNAsStr([...this.asks.values()], 5)}`)
+    this._logger.info(`Top 5 bid: ${getOBTopNAsStr([...this.bids.values()], 5)}`)
 
     setTimeout(() => this.top_5_loop(), 10000)
   }
 }
 
-module.exports = { OrderBook }
+module.exports = {
+  OrderBook
+}
