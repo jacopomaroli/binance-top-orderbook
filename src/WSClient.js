@@ -17,12 +17,10 @@ class WSClient extends Emitter {
     this._ws.on('open', () => {
       this._logger.debug('ws open')
       this._keepalive()
-      this._firstData = false
     })
 
     this._ws.on('close', () => {
       this._logger.warn('ws closed')
-      this._firstData = false
     })
 
     this._ws.on('error', () => {
@@ -37,10 +35,6 @@ class WSClient extends Emitter {
           return
         }
         this._dispatch(event.e, event)
-        if (!this._firstData) {
-          this._firstData = true
-          this._dispatch('firstData')
-        }
       } catch (e) {
         this._logger.warn('Could not parse message', e)
       }

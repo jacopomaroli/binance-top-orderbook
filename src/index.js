@@ -5,6 +5,10 @@ const { WSClient } = require('./WSClient')
 const { OrderBook } = require('./OrderBookArray')
 const { Side } = require('../src/dataStructures')
 
+const config = {
+  warmupUpdatesCount: 2
+}
+
 function top5Loop ({ logger, orderBook }) {
   logger.debug('top_5_loop')
 
@@ -19,10 +23,9 @@ async function main ({ logger }) {
 
   const wsClient = new WSClient({ logger })
   const httpClient = new HTTPClient({ logger })
-  const orderBook = new OrderBook({ wsClient, httpClient, logger })
+  const orderBook = new OrderBook({ wsClient, httpClient, logger, config })
 
   wsClient.on('depthUpdate', (data) => orderBook.wsUpdate(data))
-  wsClient.on('firstData', () => orderBook.httpUpdate())
   orderBook.on('ready', () => top5Loop({ logger, orderBook }))
 }
 

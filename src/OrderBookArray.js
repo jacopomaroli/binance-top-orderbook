@@ -4,17 +4,19 @@ const { DataOutOfSync } = require('./errors')
 const { Emitter } = require('./Emitter')
 
 class OrderBook extends Emitter {
-  constructor ({ wsClient, httpClient, logger }) {
+  constructor ({ wsClient, httpClient, logger, config }) {
     super()
 
     this._wsClient = wsClient
     this._httpClient = httpClient
     this._logger = logger
+    this._config = config
     this.bids = []
     this.asks = []
     this.lastUpdateId = -1
     this._ready = false
     this._pendingReadyEvt = true
+    this._rcvUpdatesCount = 0
   }
 
   validateWsEvent (data) {
@@ -85,6 +87,11 @@ class OrderBook extends Emitter {
     // NB: this needs to be done after the readiness check
     // we don't want to check an event against itself
     this.lastUpdateId = lastUpdateId
+
+    this._rcvUpdatesCount++
+    if (this._rcvUpdatesCount === this._config.warmupUpdatesCount) {
+      this.httpUpdate()
+    }
   }
 
   async httpUpdate () {
