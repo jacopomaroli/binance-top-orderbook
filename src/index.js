@@ -18,7 +18,7 @@ function top5Loop ({ logger, orderBook }) {
   setTimeout(() => top5Loop({ logger, orderBook }), 10000)
 }
 
-async function main ({ logger }) {
+function main ({ logger }) {
   logger.debug('Start')
 
   const wsClient = new WSClient({ logger })
@@ -35,7 +35,7 @@ async function gCatcher () {
   })
 
   try {
-    await main({ logger })
+    main({ logger })
   } catch (e) {
     logger.error(e, 'gCatcher()')
   }
